@@ -1,6 +1,6 @@
 name: Despliegue de Eme-JS a GitHub Pages
 
-# Ejecutar al subir cambios a la rama principal
+# Ejecutar al subir cambios (o fusionar una PR) a la rama principal
 on:
   push:
     branches:
@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     environment:
@@ -26,21 +26,43 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      # Descargar el contenido del repositorio
+      # 1. Descargar el código fuente del repositorio
       - name: Obtener repositorio
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
-      # Configurar GitHub Pages
+      # 2. Configurar el entorno de Node.js
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 3. Validar: si app.js tiene un error de sintaxis, el pipeline se para aquí
+      - name: Validar sintaxis de app.js
+        run: node --check app.js
+
+      # 4. Instalar JSDoc en el runner
+      - name: Instalar JSDoc
+        run: npm install jsdoc
+
+      # 5. Generar la documentación JSDoc dentro de la carpeta docs/
+      - name: Generar documentación con JSDoc
+        run: npx jsdoc app.js -d docs
+
+      # 6. Quitar node_modules para no publicarlo
+      - name: Limpiar dependencias
+        run: rm -rf node_modules package.json package-lock.json
+
+      # 7. Configurar los metadatos de GitHub Pages
       - name: Configurar GitHub Pages
         uses: actions/configure-pages@v5
 
-      # Subir los archivos de la web
+      # 8. Empaquetar la web (index.html, app.js) y la documentación (docs/)
       - name: Subir archivos
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
 
-      # Publicar la web
-      - name: Desplegar GitHub Pages
+      # 9. Publicar en la URL pública de GitHub Pages
+      - name: Desplegar en GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

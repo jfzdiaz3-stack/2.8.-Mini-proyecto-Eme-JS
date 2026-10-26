@@ -1,138 +1,133 @@
-# 🚨 Eme-JS | Simulador de Emergencias
+# 📔 Diario de Depuración y Co-Evaluación - Eme-JS
 
-**Proyecto:** Mini-proyecto Eme-JS  
+
+**Equipo:** irenepm777 (Driver inicial) & jfzdiaz3-stack (Navigator inicial)
+
+
+### 🔍 Captura y Análisis de Variables (Debugger)
+
+Para provocar un bug, cambiamos la gravedad del incidente 101 por `"abc"` y pusimos un `debugger;` en el bucle.
+Avanzando con F10, el **Scope** mostró `gravedad: NaN`: la validación original (`gravedad < 1 || gravedad > 5`) no lo detectaba, porque cualquier comparación con `NaN` da `false`.
+Por eso `prioridad` quedaba en `undefined` y `recursosDisponibles` bajaba de 3 a 2, gastando un recurso por un dato corrupto.
+Lo corregimos con `Number.isNaN()` y comprobamos que el incidente inválido llegaba al `continue` sin consumir recursos.
+Tras refactorizar en funciones, el **Call Stack** muestra la cadena `procesarIncidente` ← `procesarLote` ← `(anonymous)`, con `gravedad: null` en el Scope.
+Por último, un **breakpoint condicional** (`recursosDisponibles === 0`) congela la ejecución justo antes del `break`, en el incidente 106.
+
+| Bug detectado (Scope) | Corrección verificada | Call Stack con funciones | Breakpoint condicional |
+|:---:|:---:|:---:|:---:|
+| ![Prioridad undefined](img/06-debugger-prioridad-undefined.png) | ![Bug corregido con continue](img/07-debugger-bug-corregido-continue.png) | ![Call Stack](img/08-callstack-procesarIncidente.png) | ![Breakpoint condicional](img/09-breakpoint-condicional-break.png) |
+
+
+### 👥 Experiencia de Pair Programming
+
+Programar en pareja nos ha resultado positivo: mientras uno escribía, el otro podía centrarse en la lógica y detectar errores que se escapan al teclear.
+Tener que explicar cada decisión en voz alta nos ha obligado a comunicarnos mejor y a asegurarnos de que los dos entendíamos el código.
+El Navigator detectó dos errores que el Driver pasó por alto. El primero: al preparar la prueba se escribió `gravedad: abc` sin comillas, que JavaScript interpreta como una variable inexistente (`ReferenceError: abc is not defined`).
+El segundo: el Driver daba por hecho que la validación cubría cualquier valor inválido, y fue el Navigator quien propuso inspeccionar el Scope, donde vimos que `NaN` se colaba.
+Intercambiar los roles nos ha permitido practicar tanto escribir código como revisarlo, y el resultado final es más fiable que si lo hubiéramos hecho por separado.
+
+*Firmado: Irene Pascual Moreno y Jose Fernandez Diaz*
+
+---
+---
+
+# Información adicional del proyecto
+
+## Índice
+
+1. [Datos del proyecto y enlaces](#1-datos-del-proyecto-y-enlaces)
+2. [Funcionamiento del simulador](#2-funcionamiento-del-simulador)
+3. [Pair Programming e historial de commits](#3-pair-programming-e-historial-de-commits)
+4. [Depuración: capturas complementarias](#4-depuración-capturas-complementarias)
+5. [Automatización y despliegue CI/CD](#5-automatización-y-despliegue-cicd)
+6. [Valoraciones individuales](#6-valoraciones-individuales)
+7. [Tecnologías usadas](#7-tecnologías-usadas)
+
+## 1. Datos del proyecto y enlaces
+
+**Proyecto:** Mini-proyecto Eme-JS · Simulador de Emergencias  
 **Módulo:** Desarrollo Web en Entorno Cliente (DWEC)  
-**Equipo:** Irene Pascual Moreno y Jose Fernandez Diaz
-
-## Descripción del proyecto
-
-Eme-JS es un simulador de gestión de emergencias desarrollado con HTML y JavaScript. Su objetivo es procesar un lote de incidentes, clasificarlos según su gravedad y gestionar los recursos disponibles en un parque de bomberos.
-
-El proyecto se ha desarrollado siguiendo la metodología **Pair Programming**, alternando los roles de Driver y Navigator y utilizando Git y GitHub para el control de versiones.
-
-### Enlaces
+**Equipo:** Irene Pascual Moreno ([irenepm777](https://github.com/irenepm777)) y Jose Fernandez Diaz ([jfzdiaz3-stack](https://github.com/jfzdiaz3-stack))
 
 - **Repositorio:** [GitHub - Eme-JS](https://github.com/jfzdiaz3-stack/2.8.-Mini-proyecto-Eme-JS)
-- **Web desplegada:** [Github Pages](https://jfzdiaz3-stack.github.io/2.8.-Mini-proyecto-Eme-JS/)
+- **Web desplegada:** [GitHub Pages](https://jfzdiaz3-stack.github.io/2.8.-Mini-proyecto-Eme-JS/)
+- **Documentación JSDoc:** [Documentación generada](https://jfzdiaz3-stack.github.io/2.8.-Mini-proyecto-Eme-JS/docs/)
 
-## Funcionamiento del simulador
+## 2. Funcionamiento del simulador
 
-El programa procesa una lista de siete incidentes mediante un bucle `for`.
+Eme-JS procesa un lote de siete incidentes, los clasifica según su gravedad y gestiona los recursos de un parque de bomberos. Los mensajes se muestran en la consola del navegador (F12).
 
-Durante su ejecución:
-
-- Utilizamos `continue` para omitir los incidentes que ya están resueltos.
-- Utilizamos `break` para detener el procesamiento cuando se agotan los recursos.
-- Convertimos explícitamente la gravedad mediante `Number()`.
-- Validamos los valores numéricos para evitar errores de coerción.
-- Clasificamos las emergencias según su gravedad.
-- Descontamos un recurso por cada emergencia atendida.
-
-La clasificación de prioridades es la siguiente:
+| Función | Qué hace |
+|---------|----------|
+| `procesarLote()` | Recorre el lote con un bucle `for`. Usa `continue` para saltar los incidentes resueltos y `break` para detener el sistema cuando no quedan recursos. |
+| `procesarIncidente()` | Valida la gravedad, asigna la prioridad y lanza la alerta máxima si la gravedad es 5. Si el dato es inválido, sale con un `return` temprano (cláusula de guardia). |
+| `validarGravedad()` | Solo admite números o textos, los convierte explícitamente con `Number()` y comprueba que sean enteros entre 1 y 5, para evitar errores de coerción. |
+| `clasificarPrioridad()` | Asigna la prioridad con un `switch`. |
+| `calcularRecursos()` | Descuenta un recurso por cada emergencia atendida. |
 
 | Gravedad | Prioridad |
 |----------|-----------|
 | 1 | Baja |
 | 2 - 3 | Media |
 | 4 | Alta |
-| 5 | Crítica |
+| 5 | Crítica (alerta máxima) |
 
-Para gestionar los mensajes de consola hemos implementado un Logger personalizado, controlado mediante la constante global `_DEBUGMODE`.
+- Todas las comparaciones son estrictas (`===`) y todos los mensajes se generan con **Template Literals**.
+- Los mensajes pasan por un Logger personalizado (`miLogger`) controlado por la constante global `_DEBUGMODE`. Los mensajes `info` y el `debugger;` solo se activan con `_DEBUGMODE` a `true`. La **alerta máxima** y los **errores** se muestran siempre, porque son avisos críticos que no deben perderse en producción.
+- El código está documentado con JSDoc (`@type`, `@param`, `@returns`, `@typedef` y `@property`).
 
-También hemos documentado el código utilizando JSDoc, incluyendo las etiquetas `@type`, `@param`, `@returns`, `@typedef` y `@property`.
+## 3. Pair Programming e historial de commits
 
-## Metodología Pair Programming
+- **Driver:** escribe el código y aplica las soluciones.
+- **Navigator:** revisa la lógica, detecta errores y orienta la depuración.
 
-Durante el desarrollo hemos trabajado alternando dos roles:
+Hemos intercambiado los roles entre las fases de preparación, implementación, documentación/depuración y despliegue. Cada commit indica en el mensaje quién era Driver y quién Navigator.
 
-- **Driver:** encargado de escribir el código y aplicar las soluciones.
-- **Navigator:** encargado de revisar la lógica, detectar errores y orientar el proceso de depuración.
+## 4. Depuración: capturas complementarias
 
-Los intercambios de roles se han organizado entre las fases de preparación, implementación, documentación y despliegue.
-
-El historial de commits permite consultar qué integrante ejercía cada rol durante las diferentes fases.
-
----
-
-# 📔 Diario de Depuración y Co-Evaluación
-
-## 🔍 Captura y análisis de variables
-
-Durante la depuración detectamos un error relacionado con la conversión de tipos en JavaScript.
-
-Para reproducirlo, modificamos temporalmente la gravedad del incidente 101, asignándole el valor `"abc"`.
-
-Al convertir este valor mediante `Number()`, obtuvimos `NaN`. Sin embargo, nuestra validación original no detectaba el problema, ya que las comparaciones de `NaN` con números devolvían `false`.
-
-Como consecuencia, el incidente continuaba procesándose y su prioridad quedaba como `undefined`, pudiendo consumir un recurso incorrectamente.
-
-Utilizamos la instrucción `debugger;` y las DevTools del navegador para inspeccionar las variables del **Scope** y la posición de ejecución en el **Call Stack**.
-
-### Captura 1 - Inspección del Scope y Call Stack
+**Código original con el `debugger;`**, antes de corregir la validación:
 
 ![Código original con debugger](img/03-codigo-debugger-validacion-original.png)
 
-Antes de corregir el error, introdujimos la instrucción `debugger;` para detener la ejecución y analizar el comportamiento del programa. La validación original únicamente comprobaba si la gravedad era menor que 1 o mayor que 5, sin contemplar los valores `NaN`.
+**Error detectado por el Navigator:** `abc` sin comillas y el `ReferenceError` resultante:
 
-### Captura 2 - Identificación del error
+![abc sin comillas en el código](img/02-codigo-error-abc-sin-comillas.png)
+![ReferenceError en consola](img/04-consola-referenceerror-abc-not-defined.png)
+![Error en la pestaña Sources](img/05-sources-error-abc-sin-comillas.png)
 
-![Prioridad undefined](img/06-debugger-prioridad-undefined.png)
+**Cambio de nivel en el Call Stack:** parados en el `debugger;` de `procesarIncidente()` con `gravedad: "abc"`, hicimos clic en `procesarLote` dentro del Call Stack. El Scope pasa a mostrar las variables de esa función, y se ve que `recursosDisponibles` sigue en 3: el incidente inválido se descarta sin gastar recursos.
 
-Avanzamos línea por línea utilizando F10 hasta llegar a la clasificación de prioridades. Observamos que ninguna condición se cumplía y que la variable `prioridad` permanecía como `undefined`.
+![Scope de procesarLote desde el Call Stack](img/10-callstack-scope-procesarLote.png)
 
-### Captura 3 - Corrección y verificación
+**Ejecución correcta** con los datos originales:
 
-![Corrección del bug con continue](img/07-debugger-bug-corregido-continue.png)
+![Consola con ejecución correcta](img/01-consola-ejecucion-correcta.png)
 
-Corregimos la validación utilizando `Number.isNaN()` para detectar valores no numéricos.
+## 5. Automatización y despliegue CI/CD
 
-Después repetimos la depuración y comprobamos que el programa llegaba a `continue;`, omitiendo el incidente inválido sin descontar recursos.
+El workflow `.github/workflows/deploy.yml` se ejecuta automáticamente con cada push o pull request fusionada en `main`, siguiendo el modelo de la presentación de teoría:
 
-Finalmente, restauramos los datos originales del lote de incidentes y mantuvimos la validación corregida.
+1. Descarga el código del repositorio.
+2. Configura Node.js.
+3. **Valida** la sintaxis de `app.js` con `node --check`. Si hay un error, el despliegue se detiene.
+4. Instala JSDoc y **genera la documentación** en la carpeta `docs/`.
+5. Configura GitHub Pages, empaqueta la web y la documentación, y las **despliega** en la URL pública.
 
-## 👥 Experiencia de Pair Programming
+Así, cada actualización de `main` se publica sin despliegue manual, y la documentación siempre está al día con el código.
 
-Trabajar mediante Pair Programming nos ha permitido repartir las responsabilidades durante el desarrollo y revisar el código desde dos perspectivas diferentes.
+## 6. Valoraciones individuales
 
-Mientras una persona se concentraba en escribir las instrucciones, la otra podía prestar más atención a la lógica general y detectar posibles errores.
+**Irene:** El Pair Programming ha sido una experiencia bastante positiva para mí. Aunque trabajar en pareja puede resultarme un poco desafiante, esta actividad me ha empujado a salir de mi zona de confort y practicar mis habilidades de comunicación de una forma muy satisfactoria. Tener que explicar mis ideas, escuchar otras perspectivas y coordinarnos constantemente ha sido un ejercicio útil, tanto a nivel técnico como personal. Me ha gustado más de lo que esperaba, como ejercicio puntual.
 
-La depuración ha sido especialmente útil para comprender cómo JavaScript gestiona los tipos de datos y cómo podemos identificar problemas utilizando las herramientas del navegador.
+**Pepe:** La experiencia de programar en pareja ha sido positiva. El intercambio de roles entre Driver y Navigator me ha servido tanto para practicar el código como para revisarlo con mi compañera. También ha sido útil para comunicarnos mejor y explicar lo que estábamos haciendo, asegurándonos de entenderlo. En general la experiencia ha hecho que el proceso del proyecto sea menos complicado y que el resultado final sea más seguro.
 
-El intercambio de roles también nos ha permitido practicar tanto la implementación como la revisión del código.
-
-**Valoración de Irene:** El Pair Programming ha sido una experiencia bastante positiva para mí. Aunque trabajar en pareja puede resultarme un poco desafiante, esta actividad me ha empujado a salir de mi zona de confort y practicar mis habilidades de comunicación de una forma muy satisfactoria. Tener que explicar mis ideas, escuchar otras perspectivas y coordinarnos constantemente ha sido un ejercicio útil, tanto a nivel técnico como personal. Me ha gustado más de lo que esperaba, como ejercicio puntual.
-
-**Valoración de Pepe:** La experiencia de programar en pareja ha sido positiva. El intercambio de roles entre Driver y Navigator me ha servido tanto para practicar el código como para revisarlo con mi compañera. También ha sido útil para comunicarnos mejor y explicar lo que estábamos haciendo, asegurándonos de entenderlo. En general la experiencia ha hecho que el proceso del proyecto sea menos complicado y que el resultado final sea más seguro.
-
----
-
-## Automatización y despliegue CI/CD
-
-Para automatizar la publicación del simulador hemos preparado un workflow de GitHub Actions en:
-
-`.github/workflows/deploy.yml`
-
-Este workflow está diseñado para ejecutarse cada vez que se integran cambios en la rama `main`.
-
-El proceso consiste en:
-
-1. Obtener los archivos del repositorio.
-2. Configurar GitHub Pages.
-3. Preparar los archivos de la web.
-4. Publicar automáticamente la aplicación.
-
-De esta forma, las futuras actualizaciones de `main` podrán reflejarse en la web publicada sin necesidad de realizar el despliegue manualmente.
-
-## Tecnologías usadas
+## 7. Tecnologías usadas
 
 - HTML5
 - JavaScript (ES6)
 - JSDoc
 - Chrome DevTools
+- Node.js
 - Git y GitHub
 - GitHub Actions
 - GitHub Pages
-
----
-
-**Desarrollado por Irene Pascual Moreno y Jose Fernandez Diaz.**

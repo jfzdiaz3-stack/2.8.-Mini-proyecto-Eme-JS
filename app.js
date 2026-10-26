@@ -1,9 +1,5 @@
-// @ts-check
-"use strict";
-
 /**
- * Activa o desactiva los mensajes informativos de depuración
- * y las paradas del depurador (debugger).
+ * Activa o desactiva los mensajes informativos de depuración y las paradas del depurador (debugger)
  * @type {boolean}
  */
 const _DEBUGMODE = true;
@@ -81,10 +77,16 @@ const loteIncidentes = [
 /**
  * Convierte la gravedad a número y comprueba que esté entre 1 y 5.
  * Así evitamos errores de coerción si llega como texto ("3") o con un valor raro.
- * @param {unknown} valor - Gravedad tal y como viene en el incidente
+ * Solo se aceptan números o textos: Number(true) daría 1 y Number(null) daría 0,
+ * así que cualquier otro tipo se descarta antes de convertir.
+ * @param {*} valor - Gravedad tal y como viene en el incidente
  * @returns {number|null} La gravedad como número, o null si no es válida
  */
 function validarGravedad(valor) {
+    if (typeof valor !== "number" && typeof valor !== "string") {
+        return null;
+    }
+
     const gravedad = Number(valor);
 
     if (Number.isNaN(gravedad) || !Number.isInteger(gravedad) || gravedad < 1 || gravedad > GRAVEDAD_MAXIMA) {
@@ -100,17 +102,25 @@ function validarGravedad(valor) {
  * @returns {string} Prioridad: "Crítica", "Alta", "Media" o "Baja"
  */
 function clasificarPrioridad(gravedad) {
+    /** @type {string} */
+    let prioridad;
+
     switch (gravedad) {
         case 5:
-            return "Crítica";
+            prioridad = "Crítica";
+            break;
         case 4:
-            return "Alta";
+            prioridad = "Alta";
+            break;
         case 3:
-        case 2:
-            return "Media";
+        case 2: // Casos agrupados
+            prioridad = "Media";
+            break;
         default:
-            return "Baja";
+            prioridad = "Baja";
     }
+
+    return prioridad;
 }
 
 /**
@@ -169,7 +179,7 @@ function procesarLote(lote, recursosIniciales) {
         const incidente = lote[i];
 
         // Filtro 1: los incidentes ya resueltos se ignoran
-        if (incidente.resuelta) {
+        if (incidente.resuelta === true) {
             miLogger.info(`Incidente ${incidente.id} ya resuelto, se omite`);
             continue;
         }
@@ -186,7 +196,7 @@ function procesarLote(lote, recursosIniciales) {
 
         const atendido = procesarIncidente(incidente);
 
-        if (!atendido) {
+        if (atendido === false) {
             continue;
         }
 
