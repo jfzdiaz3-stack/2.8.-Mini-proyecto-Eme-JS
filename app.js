@@ -91,7 +91,13 @@ for (let i = 0; i < loteIncidentes.length; i++) {
 
     // Validar la gravedad
     if (Number.isNaN(incidente.gravedad) || incidente.gravedad < 1 || incidente.gravedad > 5) {
+       
+        if (_DEBUGMODE) {
+            debugger;
+        }
+
         miLogger.error(`Incidente ${incidente.id} tiene una gravedad inválida: ${incidente.gravedad}`);
+        
         continue;
     }
 
