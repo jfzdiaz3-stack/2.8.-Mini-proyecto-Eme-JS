@@ -1,0 +1,46 @@
+name: Despliegue de Eme-JS a GitHub Pages
+
+# Ejecutar al subir cambios a la rama principal
+on:
+  push:
+    branches:
+      - main
+
+# Permisos necesarios para GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Evitar despliegues simultáneos
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      # Descargar el contenido del repositorio
+      - name: Obtener repositorio
+        uses: actions/checkout@v6
+
+      # Configurar GitHub Pages
+      - name: Configurar GitHub Pages
+        uses: actions/configure-pages@v5
+
+      # Subir los archivos de la web
+      - name: Subir archivos
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: '.'
+
+      # Publicar la web
+      - name: Desplegar GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
